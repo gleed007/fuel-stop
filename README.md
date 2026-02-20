@@ -75,7 +75,7 @@ ORS_API_KEY=your_api_key_here
 ```
 You can get a free key (2,000 requests/day) at https://openrouteservice.org/dev/#/signup
 
-3. Run the development server:
+3. Run the server:
 ```bash
 python manage.py runserver
 ```
@@ -125,16 +125,9 @@ Fuel prices are loaded from `api/fuel_prices.csv` containing:
 
 ## Frontend
 
-Interactive web interface at `/` featuring:
+Interactive web interface at `http://localhost:8000` featuring:
 - Route input form
 - Leaflet.js map visualization
 - Real-time route calculation
 - Fuel stop details and costs
 - Responsive design
-
-## API Response Time
-
-Typical response time: 2-5 seconds
-- Geocoding: ~1-2 seconds
-- Route calculation: ~1 second
-- Fuel optimization: <1 second

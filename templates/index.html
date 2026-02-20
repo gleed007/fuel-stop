@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuel Route Optimizer</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input {
+            padding: 0.75rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            padding: 0.75rem 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            align-self: flex-end;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(102, 126, 234, 0.3);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fee;
+            color: #c00;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #c00;
+        }
+
+        #map {
+            height: 500px;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 1.5rem;
+            border-radius: 12px;
+            color: white;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            opacity: 0.9;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .fuel-stops {
+            margin-top: 2rem;
+        }
+
+        .fuel-stops h2 {
+            color: #374151;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+
+        .fuel-stop {
+            background: #f9fafb;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #667eea;
+            transition: all 0.2s;
+        }
+
+        .fuel-stop:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .fuel-stop-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 0.75rem;
+        }
+
+        .fuel-stop-name {
+            font-weight: 700;
+            color: #1f2937;
+            font-size: 1.125rem;
+        }
+
+        .fuel-stop-cost {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .fuel-stop-details {
+            color: #6b7280;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+
+        .fuel-stop-address {
+            margin-top: 0.5rem;
+            color: #9ca3af;
+        }
+
+        #results {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            button {
+                align-self: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Fuel Route Optimizer</h1>
+        
+        <div class="card">
+            <form id="routeForm">
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label for="start">Start Location</label>
+                        <input 
+                            type="text" 
+                            id="start" 
+                            name="start" 
+                            placeholder="e.g., New York, NY"
+                            required
+                        />
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="end">End Location</label>
+                        <input 
+                            type="text" 
+                            id="end" 
+                            name="end" 
+                            placeholder="e.g., Los Angeles, CA"
+                            required
+                        />
+                    </div>
+                    
+                    <button type="submit" id="calculateBtn">Calculate Route</button>
+                </div>
+            </form>
+
+            <div id="loading" style="display: none;">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Calculating optimal route and fuel stops...</p>
+                </div>
+            </div>
+
+            <div id="error" style="display: none;"></div>
+        </div>
+
+        <div id="results">
+            <div class="card">
+                <div id="map"></div>
+                
+                <div class="results-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Distance</div>
+                        <div class="stat-value" id="distance">-</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">Total Fuel Cost</div>
+                        <div class="stat-value" id="cost">-</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">Fuel Stops</div>
+                        <div class="stat-value" id="stops">-</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-label">Est. Duration</div>
+                        <div class="stat-value" id="duration">-</div>
+                    </div>
+                </div>
+
+                <div class="fuel-stops">
+                    <h2>Recommended Fuel Stops</h2>
+                    <div id="fuelStopsList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let map;
+        let routeLayer;
+        let markersLayer;
+
+        document.getElementById('routeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const start = document.getElementById('start').value;
+            const end = document.getElementById('end').value;
+            
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('calculateBtn').disabled = true;
+            
+            try {
+                const response = await fetch('/api/route', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ start, end })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to calculate route');
+                }
+                
+                displayResults(data);
+                
+            } catch (error) {
+                document.getElementById('error').textContent = error.message;
+                document.getElementById('error').style.display = 'block';
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('calculateBtn').disabled = false;
+            }
+        });
+
+        function displayResults(data) {
+            // Show results section
+            document.getElementById('results').style.display = 'block';
+            
+            // Update stats
+            document.getElementById('distance').textContent = `${data.route.distance_miles} mi`;
+            document.getElementById('cost').textContent = `$${data.total_fuel_cost.toFixed(2)}`;
+            document.getElementById('stops').textContent = data.fuel_stops.length;
+            document.getElementById('duration').textContent = `${data.route.duration_hours} hrs`;
+            
+            // Display fuel stops
+            const fuelStopsList = document.getElementById('fuelStopsList');
+            fuelStopsList.innerHTML = '';
+            
+            data.fuel_stops.forEach((stop, index) => {
+                const stopEl = document.createElement('div');
+                stopEl.className = 'fuel-stop';
+                stopEl.innerHTML = `
+                    <div class="fuel-stop-header">
+                        <div>
+                            <div class="fuel-stop-name">Stop ${index + 1}: ${stop.station_name}</div>
+                            <div class="fuel-stop-address">${stop.address}</div>
+                        </div>
+                        <div class="fuel-stop-cost">$${stop.cost.toFixed(2)}</div>
+                    </div>
+                    <div class="fuel-stop-details">
+                        <strong>${stop.gallons} gallons</strong> @ $${stop.price_per_gallon}/gal<br>
+                        ${stop.distance_from_start_miles} miles from start
+                    </div>
+                `;
+                fuelStopsList.appendChild(stopEl);
+            });
+            
+            // Initialize or update map
+            initMap(data);
+        }
+
+        function initMap(data) {
+            if (!map) {
+                map = L.map('map').setView([39.8283, -98.5795], 4);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+            }
+            
+            // Clear existing layers
+            if (routeLayer) map.removeLayer(routeLayer);
+            if (markersLayer) map.removeLayer(markersLayer);
+            
+            // Draw route
+            const routeCoords = data.route.coordinates.map(coord => [coord[0], coord[1]]);
+            routeLayer = L.polyline(routeCoords, {
+                color: '#667eea',
+                weight: 4,
+                opacity: 0.7
+            }).addTo(map);
+            
+            // Add markers
+            markersLayer = L.layerGroup().addTo(map);
+            
+            // Start marker
+            L.marker(routeCoords[0], {
+                icon: L.divIcon({
+                    className: 'custom-marker',
+                    html: '<div style="background: #10b981; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">S</div>',
+                    iconSize: [30, 30]
+                })
+            }).addTo(markersLayer).bindPopup(`<b>Start:</b> ${data.route.start}`);
+            
+            // End marker
+            L.marker(routeCoords[routeCoords.length - 1], {
+                icon: L.divIcon({
+                    className: 'custom-marker',
+                    html: '<div style="background: #ef4444; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">E</div>',
+                    iconSize: [30, 30]
+                })
+            }).addTo(markersLayer).bindPopup(`<b>End:</b> ${data.route.end}`);
+            
+            // Fuel stop markers
+            data.fuel_stops.forEach((stop, index) => {
+                if (stop.coordinates) {
+                    L.marker(stop.coordinates, {
+                        icon: L.divIcon({
+                            className: 'custom-marker',
+                            html: `<div style="background: #f59e0b; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">${index + 1}</div>`,
+                            iconSize: [28, 28]
+                        })
+                    }).addTo(markersLayer).bindPopup(`
+                        <b>${stop.station_name}</b><br>
+                        ${stop.address}<br>
+                        <strong>$${stop.cost.toFixed(2)}</strong> (${stop.gallons} gal @ $${stop.price_per_gallon}/gal)
+                    `);
+                }
+            });
+            
+            // Fit bounds to show entire route
+            map.fitBounds(routeLayer.getBounds(), { padding: [50, 50] });
+        }
+    </script>
+</body>
+</html>
