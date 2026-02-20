@@ -38,7 +38,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'fuel_route.wsgi.application'
 
-DATABASES = {}
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
@@ -47,6 +52,6 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_DIRS = []  # No additional static directories needed
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
